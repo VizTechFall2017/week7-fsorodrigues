@@ -1,139 +1,271 @@
-var width = d3.select('svg').attr('width');
-var height = d3.select('svg').attr('height');
+var height = 500;
+var width = 675;
 
-var marginLeft = 100;
-var marginTop = 100;
+var padding = { "top": 50,
+                "right": 100,
+                "bottom": 50,
+                "left": 100 };
 
-var nestedData = [];
+// creating svg canvas
+var mainSelector = d3.select(".svg-container");
 
-var svg = d3.select('svg')
-    .append('g')
-    .attr('transform', 'translate(' + marginLeft + ',' + marginTop + ')');
+var scaleY = d3.scaleLinear()
+                .range([0, height - 2 * (padding.top + padding.bottom)])
+                .nice(); // making scale end in round number
 
-//these are the size that the axes will be on the screen; set the domain values after the data loads.
-var scaleX = d3.scaleBand().rangeRound([0, 600]).padding(0.1);
-var scaleY = d3.scaleLinear().range([400, 0]);
+var scaleX = d3.scaleTime()
+                .range([0, width - padding.right - padding.left]);
+
+var formatComma = d3.format(",");
+
+d3.csv("./daca_approvals.csv", function(error, loadData) {
+    if (error) { throw error };
+
+    // parsing for number output
+    loadData.forEach(function(d){
+        d.date = parsingTime(d.date);
+        d.initial_intake = +d.initial_intake;
+        d.initial_approval = +d.initial_approval;
+        d.initial_cumulative = +d.initial_cumulative;
+        d.renewal_intake = +d.renewal_intake;
+        d.renewal_approval = +d.renewal_approval;
+    });
+
+    // var t = textures.lines()
+    //           .orientation("7/8", "7/8")
+    //           .size(10)
+    //           .strokeWidth(.25)
+    //           .stroke("#1F5869");
+    //
+    // svg.call(t);
+
+    scaleX.domain(d3.extent(loadData, function(d) { return d.date; }));
+
+    var dataIn = loadData.filter( function(d) { return d.data_origin == "uscis" });
+
+    console.log(dataIn);
+
+    var columnsNames = loadData.columns;
+
+    console.log(columnsNames);
+
+    var projection = loadData.filter( function(d) { return d.data_origin == "projection" });
+
+    for (var i = 8; i < columnsNames.length; i++) {
+      drawArea(dataIn, columnsNames[i], scaleX, scaleY, "#1F5869");
+    }
+    // drawing areas charts
+
+    // drawArea(projection, "initial_cumulative", scaleX, scaleY, t.url());
+    // drawArea(dataIn, "renewal_approval" , scaleX, scaleY, "#1F5869");
+
+    // drawLine(dataIn, "#1F5869" ,"1,0");
+
+    //drawing projection area chart
+    // drawArea(projection, "initial_cumulative", t.url())
+    // drawLine(projection, "#1F5869", "0.5,7");
+
+    // window.setTimeout(drawAnnotation, 1200);
+
+    //drawing circles on data points
+    // drawPlots(dataIn, "#282D48");
 
 
-//import the data from the .csv file
-d3.csv('./countryData_topten.csv', function(dataIn){
-
-    nestedData = d3.nest()
-        .key(function(d){return d.year})
-        .entries(dataIn);
-
-    var loadData = nestedData.filter(function(d){return d.key == '1987'})[0].values;
-
-    // Add the x Axis
-    svg.append("g")
-        .attr('class','xaxis')
-        .attr('transform','translate(0,400)')  //move the x axis from the top of the y axis to the bottom
-        .call(d3.axisBottom(scaleX));
-
-    svg.append("g")
-        .attr('class', 'yaxis')
-        .call(d3.axisLeft(scaleY));
-
-/*
-    svg.append('text')
-        .text('Weekly income by age and gender')
-        .attr('transform','translate(300, -20)')
-        .style('text-anchor','middle');
-
-    svg.append('text')
-        .text('age group')
-        .attr('transform','translate(260, 440)');
-
-    svg.append('text')
-        .text('weekly income')
-        .attr('transform', 'translate(-50,250)rotate(270)');
-
-        */
-
-    //bind the data to the d3 selection, but don't draw it yet
-    //svg.selectAll('rect')
-    //    .data(loadData, function(d){return d;});
-
-    //call the drawPoints function below, and hand it the data2016 variable with the 2016 object array in it
-    drawPoints(loadData);
 
 });
 
-//this function draws the actual data points as circles. It's split from the enter() command because we want to run it many times
-//without adding more circles each time.
-function drawPoints(pointData){
+var parsingTime = d3.timeParse("%m/%d/%Y");
 
-    scaleX.domain(pointData.map(function(d){return d.countryCode;}));
-    scaleY.domain([0, d3.max(pointData.map(function(d){return +d.totalPop}))]);
+function drawAnnotation() {
 
-    d3.selectAll('.xaxis')
-        .call(d3.axisBottom(scaleX));
+  const type = d3.annotationCalloutCircle
+  const annotations = [{
+    note: { label: "On Sep 5, Attorney General Jeff Sessions announced the Trump administration would stop receiving work permit applications immediately and cancel the program in six months.", title: "The end of DACA", wrap: 200},
+    // data: { date: "9/1/2017", initial_cumulative: 751659 },
+    x: 475, y: 118,
+    dy:0, dx: -100,
+    subject: { radius: 10, radiusPadding: 0 }
+  }]
 
-    d3.selectAll('.yaxis')
-        .call(d3.axisLeft(scaleY));
+  // const parseTime = d3.timeParse("%b/%d/%Y")
+  // const timeFormat = d3.timeFormat("%d/%m/%Y")
 
-    //select all bars in the DOM, and bind them to the new data
-    var rects = svg.selectAll('.bars')
-        .data(pointData, function(d){return d.countryCode;});
+  const makeAnnotations = d3.annotation()
+    .type(type)
+    // accessors & accessorsInverse not needed
+    // if using x, y in annotations JSON
+    // .accessors({
+    //   x: d => scaleX(parseTime(d.date)),
+    //   y: d => scaleY(d.initial_cumulative)
+    // })
+    // .accessorsInverse({
+    //    date: d => timeFormat(scaleX.invert(d.scaleX)),
+    //    initial_cumulative: d => scaleY.invert(d.scaleY)
+    // })
+    .annotations(annotations)
 
-    //look to see if there are any old bars that don't have keys in the new data list, and remove them.
-    rects.exit()
-        .remove();
+  d3.select("svg")
+    .append("g")
+    .attr("class", "annotation-group")
+    .call(makeAnnotations);
+};
 
-    //update the properties of the remaining bars (as before)
-    rects
-        .transition()
-        .duration(200)
-        .attr('x',function(d){
-            return scaleX(d.countryCode);
-        })
-        .attr('y',function(d){
-            return scaleY(d.totalPop);
-        })
-        .attr('width',function(d){
-            return scaleX.bandwidth();
-        })
-        .attr('height',function(d){
-            return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
-        });
+function drawArea(dataset, column, scalex, scaley, fill, i) {
 
-    //add the enter() function to make bars for any new countries in the list, and set their properties
-    rects
-        .enter()
-        .append('rect')
-        .attr('class','bars')
-        .attr('fill', "slategray")
-        .attr('x',function(d){
-            return scaleX(d.countryCode);
-        })
-        .attr('y',function(d){
-            return scaleY(d.totalPop);
-        })
-        .attr('width',function(d){
-            return scaleX.bandwidth();
-        })
-        .attr('height',function(d){
-            return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
-        });
+      var maxY = getMaxY(dataset, column);
+      scaleY.domain([maxY,0]).nice();
 
-    //take out bars for any old countries that no longer exist
-    //rects.exit()
-    //    .remove();
+      var svg = mainSelector.append("svg")
+                             .attr("class", "svg-" + column )
+                             .attr("height", height)
+                             .attr("width", width)
+                             .append("g")
+                             .attr("transform", "translate(" + padding.left + "," + 2 * padding.top + ")");
 
+      var initialArea = d3.area()
+                           .x(0)
+                           .y0(height - 200)
+                           .y1(function(d) { return scaleY(d[column]) });
 
+      var area = d3.area()
+                     .x(function(d) { return scaleX(d.date) })
+                     .y0(height - 200)
+                     .y1(function(d) { return scaleY(d[column]) });
 
-}
+      var appendArea = svg.append("g")
+                            .append("path")
+                            .data([dataset])
+                            .attr("class", "area")
+                            .attr("fill", fill)
+                            .attr("opacity", .5)
+                            .attr("d", initialArea)
+                             .transition()
+                             .duration(1000)
+                             .ease(d3.easeCubic)
+                            .attr("d", area);
 
+      // calling axis
+      xAxis(svg, scalex);
+      yAxis(svg, scaley);
 
-function updateData(selectedYear){
-    return nestedData.filter(function(d){return d.key == selectedYear})[0].values;
-}
+      // calling title, subtitle and axis labels
+      chartTitle(svg, column);
+      // chartSubtitle(svg);
+      // xLabel();
+      // yLabel(svg);
 
+      drawPlots(svg, dataset, column, fill);
 
-//this function runs when the HTML slider is moved
-function sliderMoved(value){
+};
 
-    newData = updateData(value);
-    drawPoints(newData);
+function drawLine(dataset, stroke, dotted) {
 
-}
+      var initialLine = d3.area()
+                           .x(0)
+                           .y0(height - 200)
+                           .y1(function(d) { return scaleY(d.initial_cumulative) });
+
+      var valueline = d3.line()
+                     .x(function(d) { return scaleX(d.date) })
+                     .y(function(d) { return scaleY(d.initial_cumulative) });
+
+      var appendLine = svg.append("g")
+                            .append("path")
+                            .data([dataset])
+                            .attr("class", "line")
+                            .attr("fill", "none")
+                            .attr("stroke", stroke)
+                            .attr("stroke-width", 2.5)
+                            .style("stroke-linecap", "round")
+                            .style("stroke-dasharray", (dotted))
+                            .attr("opacity", 1)
+                            .attr("d", initialLine)
+                             .transition()
+                             .duration(1000)
+                             .ease(d3.easeCubic)
+                            .attr("d", valueline);
+};
+
+function drawPlots(container, dataset, column, fill) {
+
+    container.append("g")
+                .attr("class", "plots")
+              .selectAll("circle")
+              .data(dataset)
+              .enter()
+              .append("circle")
+                .attr("opacity", 0)
+                .attr("cy", function(d) { return scaleY(d[column]) })
+                .attr("fill", fill)
+                .attr("class", function(d) { return d.calendar_year + "-" + d.quarter } )
+                .attr("r", 8)
+                .on("mouseover", function(d) {
+                  var selection = d3.select(this).attr("class");
+                  console.log(selection)
+
+                  // container.selectAll("." + selection )
+                  //           .attr("r", 10)
+                  //           .attr("opacity", 1);
+
+                })
+                .attr("cx", 0)
+                  .transition()
+                  .duration(1000)
+                  .ease(d3.easeSin)
+                .attr("cx", function(d) { return scaleX(d.date) });
+};
+
+function getMaxY(dataset,column) {
+      return d3.max(dataset, function(d) { return d[column] * 1.05 });
+};
+
+// defining functions to append axis
+function xAxis(container, scale) {
+          container.append("g")
+                    .attr("transform", "translate(0," + (height - 2 * (padding.top + padding.bottom)) + ")" )
+                    .attr("class", "xAxis")
+                    .call(d3.axisBottom(scale));
+};
+
+function yAxis(container, scale) {
+          container.append("g")
+                    .attr("transform", "translate(0,0)")
+                    .attr("class", "yAxis")
+                    .call(d3.axisLeft(scale));
+};
+
+// defining functions to append title, subtitle and labels to axis
+function chartTitle(container, text) {
+          container.append("text")
+                    .attr("x", 0)
+                    .attr("y", -20)
+                    .attr("class", "title")
+                    .text(text);
+};
+
+function chartSubtitle(container) {
+          container.append("text")
+                    .attr("x", 0)
+                    .attr("y", -25)
+                    .attr("class", "subtitle")
+                    .text("");
+};
+
+// function xLabel() {
+//           svg.append("text")
+//               .attr("x", 300)
+//               .attr("y", 440)
+//               .attr("class", "label")
+//               .attr("text-anchor", "middle")
+//               .text("Total earnings, in USD");
+// };
+
+function yLabel(container) {
+          container.append("text")
+                    .attr("transform", "rotate(270)")
+                    .attr("x", -100)
+                    .attr("y", -70)
+                    .attr("class", "label")
+                    .attr("text-anchor", "middle")
+                    // .text("Cumulative approvals");
+};

@@ -1,18 +1,22 @@
-var width = d3.select('svg').attr('width');
-var height = d3.select('svg').attr('height');
+var width = document.getElementById('svg1').clientWidth;
+var height = document.getElementById('svg1').clientHeight;
 
 var marginLeft = 100;
 var marginTop = 100;
 
 var nestedData = [];
 
-var svg = d3.select('svg')
+var svg = d3.select('#svg1')
+    .append('g')
+    .attr('transform', 'translate(' + marginLeft + ',' + marginTop + ')');
+
+var svg2 = d3.select('#svg2')
     .append('g')
     .attr('transform', 'translate(' + marginLeft + ',' + marginTop + ')');
 
 //these are the size that the axes will be on the screen; set the domain values after the data loads.
-var scaleX = d3.scaleBand().rangeRound([0, 600]).padding(0.1);
-var scaleY = d3.scaleLinear().range([400, 0]);
+var scaleX = d3.scaleBand().rangeRound([0, (width - 2 * marginLeft)]).padding(0.1);
+var scaleY = d3.scaleLinear().range([(height - 2 * marginTop), 0]);
 
 
 //import the data from the .csv file
@@ -27,10 +31,19 @@ d3.csv('./countryData_topten.csv', function(dataIn){
     // Add the x Axis
     svg.append("g")
         .attr('class','xaxis')
-        .attr('transform','translate(0,400)')  //move the x axis from the top of the y axis to the bottom
+        .attr('transform','translate(0,' + (height - 2 * marginTop) + ')')  //move the x axis from the top of the y axis to the bottom
         .call(d3.axisBottom(scaleX));
 
     svg.append("g")
+        .attr('class', 'yaxis')
+        .call(d3.axisLeft(scaleY));
+
+    svg2.append("g")
+        .attr('class','xaxis')
+        .attr('transform','translate(0,' + (height - 2 * marginTop) + ')')  //move the x axis from the top of the y axis to the bottom
+        .call(d3.axisBottom(scaleX));
+
+    svg2.append("g")
         .attr('class', 'yaxis')
         .call(d3.axisLeft(scaleY));
 
@@ -81,8 +94,7 @@ function drawPoints(pointData){
         .remove();
 
     //update the properties of the remaining bars (as before)
-    rects
-        .transition()
+    rects.transition()
         .duration(200)
         .attr('x',function(d){
             return scaleX(d.countryCode);
@@ -94,12 +106,11 @@ function drawPoints(pointData){
             return scaleX.bandwidth();
         })
         .attr('height',function(d){
-            return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            return (height - 2 * marginTop) - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
         });
 
     //add the enter() function to make bars for any new countries in the list, and set their properties
-    rects
-        .enter()
+    rects.enter()
         .append('rect')
         .attr('class','bars')
         .attr('fill', "slategray")
@@ -113,12 +124,49 @@ function drawPoints(pointData){
             return scaleX.bandwidth();
         })
         .attr('height',function(d){
-            return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            return (height - 2 * marginTop) - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
         });
 
-    //take out bars for any old countries that no longer exist
-    //rects.exit()
-    //    .remove();
+        var rects2 = svg2.selectAll('.bars')
+            .data(pointData, function(d){return d.countryCode;});
+
+        //look to see if there are any old bars that don't have keys in the new data list, and remove them.
+        rects2.exit()
+            .remove();
+
+        //update the properties of the remaining bars (as before)
+        rects2.transition()
+            .duration(200)
+            .attr('x',function(d){
+                return scaleX(d.countryCode);
+            })
+            .attr('y',function(d){
+                return scaleY(d.totalPop);
+            })
+            .attr('width',function(d){
+                return scaleX.bandwidth();
+            })
+            .attr('height',function(d){
+                return (height - 2 * marginTop) - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            });
+
+        //add the enter() function to make bars for any new countries in the list, and set their properties
+        rects2.enter()
+            .append('rect')
+            .attr('class','bars')
+            .attr('fill', "slategray")
+            .attr('x',function(d){
+                return scaleX(d.countryCode);
+            })
+            .attr('y',function(d){
+                return scaleY(d.totalPop);
+            })
+            .attr('width',function(d){
+                return scaleX.bandwidth();
+            })
+            .attr('height',function(d){
+                return (height - 2 * marginTop) - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            });
 
 
 

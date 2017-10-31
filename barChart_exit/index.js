@@ -16,7 +16,7 @@ var scaleY = d3.scaleLinear().range([400, 0]);
 
 
 //import the data from the .csv file
-d3.csv('./countryData.csv', function(dataIn){
+d3.csv('./countryData_topten.csv', function(dataIn){
 
     nestedData = d3.nest()
         .key(function(d){return d.year})
@@ -24,16 +24,17 @@ d3.csv('./countryData.csv', function(dataIn){
 
     var loadData = nestedData.filter(function(d){return d.key == '1987'})[0].values;
 
-    scaleX.domain(loadData.map(function(d){return d.countryCode;}));
-    scaleY.domain([0, d3.max(loadData.map(function(d){return +d.totalPop}))]);
+    var xAxis = scaleX.domain(loadData.map(function(d){return d.countryCode;}));
+    var yAxis = scaleY.domain([0, d3.max(loadData.map(function(d){return +d.totalPop}))]);
 
     // Add the x Axis
     svg.append("g")
+        .attr('class','xAxis')
         .attr('transform','translate(0,400)')  //move the x axis from the top of the y axis to the bottom
         .call(d3.axisBottom(scaleX));
 
     svg.append("g")
-        .attr('class','yaxis')
+        .attr('class','yAxis')
         .call(d3.axisLeft(scaleY));
 
 /*
@@ -53,12 +54,12 @@ d3.csv('./countryData.csv', function(dataIn){
         */
 
     //bind the data to the d3 selection, but don't draw it yet
-    svg.selectAll('rect')
-        .data(loadData)
-        .enter()
-        .append('rect')
-        .attr('class','bars')
-        .attr('fill', "slategray");
+    // svg.selectAll('rect')
+    //     .data(loadData, function(d) { return d.countryCode; })
+    //     .enter()
+    //     .append('rect')
+    //     .attr('class','bars')
+    //     .attr('fill', "slategray");
 
     //call the drawPoints function below, and hand it the data2016 variable with the 2016 object array in it
     drawPoints(loadData);
@@ -70,24 +71,56 @@ d3.csv('./countryData.csv', function(dataIn){
 function drawPoints(pointData){
 
     scaleY.domain([0, d3.max(pointData.map(function(d){return +d.totalPop}))]);
+    scaleX.domain(pointData.map(function(d){return d.countryCode;}));
 
-    svg.selectAll('.yaxis')
-        .call(d3.axisLeft(scaleY));
+        svg.selectAll('.yAxis')
+              .transition()
+              .duration(300)
+            .call(d3.axisLeft(scaleY));
 
-    svg.selectAll('rect')
-        .data(pointData)
-        .attr('x',function(d){
-            return scaleX(d.countryCode);
-        })
-        .attr('y',function(d){
-            return scaleY(d.totalPop);
-        })
-        .attr('width',function(d){
-            return scaleX.bandwidth();
-        })
-        .attr('height',function(d){
-            return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
-        });
+        svg.selectAll('.xAxis')
+              .transition()
+              .duration(300)
+            .call(d3.axisBottom(scaleX));
+
+    var rects = svg.selectAll('rect')
+                    .data(pointData, function(d) { return d.countryCode; });
+
+        rects.exit()
+              .transition()
+              .duration(300)
+             .remove();
+
+        rects.enter()
+              .append('rect')
+              .attr('class','bars')
+              .attr('fill', "slategray")
+              .attr('x',function(d){
+                  return scaleX(d.countryCode);
+                  })
+              .attr('y',function(d){
+                  return scaleY(d.totalPop);
+                  })
+              .attr('width',function(d){
+                  return scaleX.bandwidth();
+                  })
+              .attr('height',function(d){
+                  return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+                  });
+
+        rects.transition().duration(300)
+                .attr('x',function(d){
+                  return scaleX(d.countryCode);
+                  })
+                .attr('y',function(d){
+                  return scaleY(d.totalPop);
+                  })
+                .attr('width',function(d){
+                  return scaleX.bandwidth();
+                  })
+                .attr('height',function(d){
+                  return 400 - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+                  });
 
 }
 

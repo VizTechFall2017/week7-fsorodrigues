@@ -18,6 +18,7 @@ var svg2 = d3.select('#svg2')
 //these are the size that the axes will be on the screen; set the domain values after the data loads.
 var scaleX = d3.scaleBand().rangeRound([0, width-2*marginLeft]).padding(0.1);
 var scaleY = d3.scaleLinear().range([height-2*marginTop, 0]);
+var scaleY2 = d3.scaleLinear().range([height-2*marginTop, 0]);
 
 
 //import the data from the .csv file
@@ -45,8 +46,8 @@ d3.csv('./countryData_topten.csv', function(dataIn){
         .call(d3.axisBottom(scaleX));
 
     svg2.append("g")
-        .attr('class', 'yaxis')
-        .call(d3.axisLeft(scaleY));
+        .attr('class', 'yaxis2')
+        .call(d3.axisLeft(scaleY2));
 
 /*
     svg.append('text')
@@ -79,12 +80,16 @@ function drawPoints(pointData){
 
     scaleX.domain(pointData.map(function(d){return d.countryCode;}));
     scaleY.domain([0, d3.max(pointData.map(function(d){return +d.totalPop}))]);
+    scaleY2.domain([0, d3.max(pointData.map(function(d){return +d.caloriesPerCap}))]);
 
     d3.selectAll('.xaxis')
         .call(d3.axisBottom(scaleX));
 
     d3.selectAll('.yaxis')
         .call(d3.axisLeft(scaleY));
+
+    d3.selectAll('.yaxis2')
+        .call(d3.axisLeft(scaleY2));
 
     //select all bars in SVG1, and bind them to the new data
     var rects = svg.selectAll('.bars')
@@ -95,7 +100,7 @@ function drawPoints(pointData){
         .remove();
 
     //update the properties of the remaining bars (as before)
-    rects
+    rects.attr("id", function(d){ return d.countryCode })
         .transition()
         .duration(200)
         .attr('x',function(d){
@@ -112,9 +117,10 @@ function drawPoints(pointData){
         });
 
     //add the enter() function to make bars for any new countries in the list, and set their properties
-    rects
-        .enter()
+
+    rects.enter()
         .append('rect')
+        .attr("id", function(d){ return d.countryCode })
         .attr('class','bars')
         .attr('fill', "slategray")
         .attr('x',function(d){
@@ -128,6 +134,16 @@ function drawPoints(pointData){
         })
         .attr('height',function(d){
             return height-2*marginTop - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+        })
+        .on("mouseover", function(d) {
+          d3.select(this).attr("fill", "purple");
+          var currentId = d3.select(this).attr("id");
+          svg2.selectAll("#" + currentId).attr("fill", "purple");
+        })
+        .on("mouseout", function(d) {
+          var currentId = d3.select(this).attr("id");
+          d3.selectAll("#" + currentId).attr('fill', "slategray");
+
         });
 
 
@@ -143,20 +159,21 @@ function drawPoints(pointData){
         .remove();
 
     //update the properties of the remaining bars (as before)
-    rects2
+
+    rects2.attr("id", function(d){ return d.countryCode })
         .transition()
         .duration(200)
         .attr('x',function(d){
             return scaleX(d.countryCode);
         })
         .attr('y',function(d){
-            return scaleY(d.totalPop);
+            return scaleY2(d.caloriesPerCap);
         })
         .attr('width',function(d){
             return scaleX.bandwidth();
         })
         .attr('height',function(d){
-            return height-2*marginTop - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            return height-2*marginTop - scaleY2(d.caloriesPerCap);  //400 is the beginning domain value of the y axis, set above
         });
 
     //add the enter() function to make bars for any new countries in the list, and set their properties
@@ -165,17 +182,18 @@ function drawPoints(pointData){
         .append('rect')
         .attr('class','bars')
         .attr('fill', "slategray")
+        .attr("id", function(d){ return d.countryCode })
         .attr('x',function(d){
             return scaleX(d.countryCode);
         })
         .attr('y',function(d){
-            return scaleY(d.totalPop);
+            return scaleY2(d.caloriesPerCap);
         })
         .attr('width',function(d){
             return scaleX.bandwidth();
         })
         .attr('height',function(d){
-            return height-2*marginTop - scaleY(d.totalPop);  //400 is the beginning domain value of the y axis, set above
+            return height-2*marginTop - scaleY2(d.caloriesPerCap);  //400 is the beginning domain value of the y axis, set above
         });
 
 
