@@ -43,8 +43,6 @@ d3.csv("./daca_approvals.csv", function(error, loadData) {
 
     var dataIn = loadData.filter( function(d) { return d.data_origin == "uscis" });
 
-    console.log(dataIn);
-
     var columnsNames = loadData.columns;
 
     console.log(columnsNames);
@@ -116,7 +114,7 @@ function drawArea(dataset, column, scalex, scaley, fill, i) {
       scaleY.domain([maxY,0]).nice();
 
       var svg = mainSelector.append("svg")
-                             .attr("class", "svg-" + column )
+                             .attr("class", "svg-" + column + " charts" )
                              .attr("height", height)
                              .attr("width", width)
                              .append("g")
@@ -133,8 +131,9 @@ function drawArea(dataset, column, scalex, scaley, fill, i) {
                      .y1(function(d) { return scaleY(d[column]) });
 
       var appendArea = svg.append("g")
-                            .append("path")
-                            .data([dataset])
+                            .attr("class", "area-chart")
+                          .append("path")
+                          .data([dataset])
                             .attr("class", "area")
                             .attr("fill", fill)
                             .attr("opacity", .5)
@@ -154,10 +153,10 @@ function drawArea(dataset, column, scalex, scaley, fill, i) {
       // xLabel();
       // yLabel(svg);
 
-      drawPlots(svg, dataset, column, fill);
+
       drawLine(svg, dataset, column, "#1F5869" ,"1,0");
       drawLine(svg, dataset, column, "#1F5869", "0.5,7");
-
+      drawPlots(svg, dataset, column, fill);
 
 };
 
@@ -173,23 +172,54 @@ function drawLine(container, dataset, column, stroke, dotted) {
                      .y(function(d) { return scaleY(d[column]) });
 
       var appendLine = container.append("g")
-                            .append("path")
-                            .data([dataset])
-                            .attr("class", "line")
-                            .attr("fill", "none")
-                            .attr("stroke", stroke)
-                            .attr("stroke-width", 2.5)
-                            .style("stroke-linecap", "round")
-                            .style("stroke-dasharray", (dotted))
-                            .attr("opacity", 1)
-                            .attr("d", initialLine)
-                             .transition()
-                             .duration(1000)
-                             .ease(d3.easeCubic)
-                            .attr("d", valueline);
+                                  .attr("class", "line-chart")
+                                .append("path")
+                                .data([dataset])
+                                  .attr("class", "line")
+                                  .attr("fill", "none")
+                                  .attr("stroke", stroke)
+                                  .attr("stroke-width", 2.5)
+                                  .style("stroke-linecap", "round")
+                                  .style("stroke-dasharray", (dotted))
+                                  .attr("opacity", 1)
+                                  .attr("d", initialLine)
+                                  .transition()
+                                  .duration(1000)
+                                  .ease(d3.easeCubic)
+                                  .attr("d", valueline);
 };
 
 function drawPlots(container, dataset, column, fill) {
+
+  // drawing tooltip
+  var rects = container.append("g")
+                        .attr("class", "rects")
+
+  var tooltips = container.append("g")
+                            .attr("class", "text-labels")
+
+  rects.selectAll(".charts")
+           .data(dataset)
+           .enter()
+           .append("rect")
+            .attr("class", function(d) { return "c" + d.calendar_year + "-" + d.quarter } )
+            .attr("height", 30)
+            .attr("width", 65)
+            .attr("x", function(d) { return scaleX(d.date) + 3 })
+            .attr("y", function(d) { return scaleY(d[column]) - 30 })
+            .attr("fill", "#1F5869")
+            .attr("opacity", 0)
+
+  tooltips.selectAll(".charts")
+           .data(dataset)
+           .enter()
+           .append("text")
+            .attr("class", function(d) { return "c" + d.calendar_year + "-" + d.quarter } )
+            .attr("x", function(d) { return scaleX(d.date) + 8 })
+            .attr("y", function(d) { return scaleY(d[column]) - 10 })
+            .attr("fill", "white")
+            .attr("opacity", 0)
+            .html(function(d) { return formatComma(d[column]) })
 
     container.append("g")
                 .attr("class", "plots")
@@ -200,10 +230,32 @@ function drawPlots(container, dataset, column, fill) {
                 .attr("opacity", 0)
                 .attr("cy", function(d) { return scaleY(d[column]) })
                 .attr("fill", fill)
-                .attr("class", function(d) { return d.calendar_year + "-" + d.quarter } )
-                .attr("r", 8)
+                .attr("class", function(d) { return "c" + d.calendar_year + "-" + d.quarter } )
+                .attr("r", 5)
                 .on("mouseover", function(d) {
                   var selection = d3.select(this).attr("class");
+
+                  container.selectAll("." + selection)
+                            .attr("opacity", 1)
+                            .attr("r", 10);
+
+                  d3.selectAll(".charts")
+                      .selectAll("." + selection)
+                      .attr("opacity", 1)
+                      .attr("r", 10);
+
+                })
+                .on("mouseout", function(d) {
+                  var selection = d3.select(this).attr("class");
+
+                  container.selectAll("." + selection)
+                            .attr("opacity", 0)
+                            .attr("r", 5);
+
+                  d3.selectAll(".charts")
+                      .selectAll("." + selection)
+                      .attr("opacity", 0)
+                      .attr("r", 5);
 
                 })
                 .attr("cx", 0)
@@ -211,6 +263,7 @@ function drawPlots(container, dataset, column, fill) {
                   .duration(1000)
                   .ease(d3.easeSin)
                 .attr("cx", function(d) { return scaleX(d.date) });
+
 };
 
 function getMaxY(dataset,column) {
