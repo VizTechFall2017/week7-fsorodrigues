@@ -3,14 +3,14 @@ var width = 675;
 
 var padding = { "top": 50,
                 "right": 100,
-                "bottom": 50,
+                "bottom": 0,
                 "left": 100 };
 
 // creating svg canvas
 var mainSelector = d3.select(".svg-container");
 
 var scaleY = d3.scaleLinear()
-                .range([0, height - 2 * (padding.top + padding.bottom)])
+                .range([0, height - 4 * (padding.top)])
                 .nice(); // making scale end in round number
 
 var scaleX = d3.scaleTime()
@@ -120,7 +120,7 @@ function drawArea(dataset, column, scalex, scaley, fill, i) {
                              .attr("height", height)
                              .attr("width", width)
                              .append("g")
-                             .attr("transform", "translate(" + padding.left + "," + 2 * padding.top + ")");
+                             .attr("transform", "translate(" + padding.left + "," + 3 * padding.top + ")");
 
       var initialArea = d3.area()
                            .x(0)
@@ -155,21 +155,24 @@ function drawArea(dataset, column, scalex, scaley, fill, i) {
       // yLabel(svg);
 
       drawPlots(svg, dataset, column, fill);
+      drawLine(svg, dataset, column, "#1F5869" ,"1,0");
+      drawLine(svg, dataset, column, "#1F5869", "0.5,7");
+
 
 };
 
-function drawLine(dataset, stroke, dotted) {
+function drawLine(container, dataset, column, stroke, dotted) {
 
       var initialLine = d3.area()
                            .x(0)
                            .y0(height - 200)
-                           .y1(function(d) { return scaleY(d.initial_cumulative) });
+                           .y1(function(d) { return scaleY(d[column]) });
 
       var valueline = d3.line()
                      .x(function(d) { return scaleX(d.date) })
-                     .y(function(d) { return scaleY(d.initial_cumulative) });
+                     .y(function(d) { return scaleY(d[column]) });
 
-      var appendLine = svg.append("g")
+      var appendLine = container.append("g")
                             .append("path")
                             .data([dataset])
                             .attr("class", "line")
@@ -201,11 +204,6 @@ function drawPlots(container, dataset, column, fill) {
                 .attr("r", 8)
                 .on("mouseover", function(d) {
                   var selection = d3.select(this).attr("class");
-                  console.log(selection)
-
-                  // container.selectAll("." + selection )
-                  //           .attr("r", 10)
-                  //           .attr("opacity", 1);
 
                 })
                 .attr("cx", 0)
@@ -222,7 +220,7 @@ function getMaxY(dataset,column) {
 // defining functions to append axis
 function xAxis(container, scale) {
           container.append("g")
-                    .attr("transform", "translate(0," + (height - 2 * (padding.top + padding.bottom)) + ")" )
+                    .attr("transform", "translate(0," + (height - 4 * (padding.top)) + ")" )
                     .attr("class", "xAxis")
                     .call(d3.axisBottom(scale));
 };
